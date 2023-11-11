@@ -6,6 +6,7 @@ import (
 )
 
 // Read input channel and distribute items by partitions by ID. Function guarantee that items with the same identifier handle in one partition (channel). Read input channel until close.
+// This function will be blocked until input channel close.
 func StartReading(degreeOfConcurrency int, channelBufferLength int, in <-chan Item, handler func(int, Item)) {
 	channels, completed := registerHandlers(degreeOfConcurrency, 100, func(channelIndex int, item Item) {
 		fmt.Printf("%d - %d\n", channelIndex, item.GetId())
