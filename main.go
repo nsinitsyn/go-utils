@@ -15,6 +15,7 @@ func (t TestItem) GetId() int {
 }
 
 func main() {
+	// partitioner example
 	const degreeOfConcurrency int = 5
 
 	input := make(chan partitioner.Item)
