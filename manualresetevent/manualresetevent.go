@@ -1,27 +1,35 @@
 package manualresetevent
 
+import (
+	"sync/atomic"
+)
+
 type ManualResetEvent struct {
 	ch       chan struct{}
-	signaled bool
+	signaled int32
 	reset    chan struct{}
 }
 
 func New() *ManualResetEvent {
-	return &ManualResetEvent{make(chan struct{}), false, make(chan struct{})}
+	return &ManualResetEvent{make(chan struct{}), 0, make(chan struct{})}
 }
 
 func (mre *ManualResetEvent) Wait() {
-	if mre.signaled {
+	if mre.signaled == 1 {
 		return
 	}
 	mre.ch <- struct{}{}
 }
 
 func (mre *ManualResetEvent) Set() {
-	mre.signaled = true
+
+	if !atomic.CompareAndSwapInt32(&mre.signaled, 0, 1) {
+		return
+	}
+
 	go func() { // goroutine for unblocking Set
 		for {
-			if !mre.signaled {
+			if mre.signaled == 0 {
 				break
 			}
 			select {
@@ -40,10 +48,11 @@ func (mre *ManualResetEvent) Set() {
 }
 
 func (mre *ManualResetEvent) Reset() {
-	mre.signaled = false
-	close(mre.reset)
+	if atomic.CompareAndSwapInt32(&mre.signaled, 1, 0) {
+		close(mre.reset)
+	}
 }
 
 func (mre *ManualResetEvent) IsSet() bool {
-	return mre.signaled
+	return mre.signaled == 1
 }
